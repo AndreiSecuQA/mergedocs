@@ -1,59 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, unlink } from 'fs/promises'
-import { tmpdir } from 'os'
-import { join } from 'path'
-import { randomUUID } from 'crypto'
 
-// Force Node.js runtime and disable caching
-export const dynamic = 'force-dynamic'
+// Must be nodejs runtime — Edge runtime does not have Buffer or fs
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 const SUPPORTED_EXTENSIONS = ['.docx']
 
 export async function POST(req: NextRequest) {
-  let tmpPath: string | null = null
   try {
     const formData = await req.formData()
     const file = formData.get('file')
 
     if (!file || typeof file === 'string') {
-      return NextResponse.json(
-        { error: 'No file provided.', code: 'MISSING_FILE' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'No file provided.', code: 'MISSING_FILE' }, { status: 400 })
     }
 
     const filename = (file as File).name.toLowerCase()
-    const hasSupported = SUPPORTED_EXTENSIONS.some((ext) => filename.endsWith(ext))
-    if (!hasSupported) {
+    if (!SUPPORTED_EXTENSIONS.some((ext) => filename.endsWith(ext))) {
       return NextResponse.json(
-        { error: `Unsupported file type. Please upload a .docx file.`, code: 'INVALID_FILE_TYPE' },
+        { error: 'Unsupported file type. Please upload a .docx file.', code: 'INVALID_FILE_TYPE' },
         { status: 400 }
       )
     }
 
-    // Write to /tmp — most reliable on Vercel serverless for binary file parsing.
-    // mammoth's path option reads via Node fs.readFile which bypasses any bundling issues.
+    // Convert to Node.js Buffer and pass directly to mammoth.
+    // mammoth checks `if (options.buffer)` and passes it to JSZip.loadAsync() which accepts Buffers.
+    // serverExternalPackages in next.config.ts ensures mammoth is NOT bundled by webpack.
     const arrayBuffer = await (file as File).arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-    tmpPath = join(tmpdir(), `mergedocs-${randomUUID()}.docx`)
-    await writeFile(tmpPath, buffer)
 
-    // Dynamic import ensures mammoth is never tree-shaken or bundled by webpack
-    const mammoth = (await import('mammoth')).default
-    const result = await mammoth.convertToHtml({ path: tmpPath })
+    // require() instead of import() — avoids dynamic import resolution issues on Vercel
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mammoth = require('mammoth')
+    const result = await mammoth.convertToHtml({ buffer })
 
     return NextResponse.json({ html: result.value })
   } catch (err) {
-    // Log to Vercel function logs so we can debug server-side
-    console.error('[parse-docx] error:', err)
+    console.error('[parse-docx]', err)
     const message = err instanceof Error ? err.message : 'Failed to parse document.'
-    return NextResponse.json(
-      { error: message, code: 'PARSE_ERROR' },
-      { status: 400 }
-    )
-  } finally {
-    // Always clean up the temp file
-    if (tmpPath) unlink(tmpPath).catch(() => {})
+    return NextResponse.json({ error: message, code: 'PARSE_ERROR' }, { status: 400 })
   }
 }

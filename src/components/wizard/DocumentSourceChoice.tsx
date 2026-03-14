@@ -57,6 +57,8 @@ export function DocumentSourceChoice({ onImportSuccess, onCreateNew }: DocumentS
             .filter((line) => line.trim())
             .map((line) => `<p>${line}</p>`)
             .join('')
+          onImportSuccess(html || '<p></p>')
+          toast.success('Document imported successfully')
         } else if (ext === 'html' || ext === 'htm') {
           const html = await file.text()
           onImportSuccess(html || '<p></p>')
