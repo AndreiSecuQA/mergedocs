@@ -6,21 +6,28 @@ const MAX_COLUMNS = 50
 const VARIABLE_NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 
 /**
- * Sanitize a column header into a valid variable name.
- * Replaces spaces with underscores and strips non-alphanumeric characters.
+ * Sanitize a raw header string into a valid $variableName.
+ * - Trims whitespace
+ * - Replaces spaces with underscores
+ * - Strips chars not matching [a-zA-Z0-9_]
+ * - Prefixes with _ if result starts with a digit
  */
-function sanitizeHeader(raw: string): string {
-  return raw
+export function sanitizeVariableName(raw: string): string {
+  let name = raw
     .trim()
     .replace(/\s+/g, '_')
     .replace(/[^a-zA-Z0-9_]/g, '')
+  if (name && /^[0-9]/.test(name)) {
+    name = '_' + name
+  }
+  return name
 }
 
 /**
  * Parse a CSV File object into a ParsedDataTable.
  * Runs entirely client-side.
  */
-export function parseCsv(file: File): Promise<ParsedDataTable> {
+export function parseCSV(file: File): Promise<ParsedDataTable> {
   return new Promise((resolve, reject) => {
     Papa.parse<string[]>(file, {
       skipEmptyLines: true,
@@ -45,7 +52,7 @@ export function parseCsv(file: File): Promise<ParsedDataTable> {
           }
 
           const headers = rawHeaders.map((h, i) => {
-            const sanitized = sanitizeHeader(h)
+            const sanitized = sanitizeVariableName(h)
             if (!sanitized) {
               throw new Error(`Column ${i + 1} has an invalid or empty header name.`)
             }

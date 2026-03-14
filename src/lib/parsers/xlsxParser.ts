@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx'
 import { ParsedDataTable } from '@/types'
+import { sanitizeVariableName } from './csvParser'
 
 const MAX_ROWS = 500
 const MAX_COLUMNS = 50
@@ -7,20 +8,10 @@ const VARIABLE_NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 
 /**
- * Sanitize a column header into a valid variable name.
- */
-function sanitizeHeader(raw: string): string {
-  return String(raw)
-    .trim()
-    .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9_]/g, '')
-}
-
-/**
  * Parse an XLS or XLSX File object into a ParsedDataTable.
  * Runs entirely client-side using SheetJS.
  */
-export async function parseXlsx(file: File): Promise<ParsedDataTable> {
+export async function parseXLSX(file: File): Promise<ParsedDataTable> {
   if (file.size > MAX_FILE_SIZE_BYTES) {
     throw new Error('File size exceeds the 10MB limit.')
   }
@@ -56,7 +47,7 @@ export async function parseXlsx(file: File): Promise<ParsedDataTable> {
   }
 
   const headers = rawHeaders.map((h, i) => {
-    const sanitized = sanitizeHeader(h)
+    const sanitized = sanitizeVariableName(String(h))
     if (!sanitized) {
       throw new Error(`Column ${i + 1} has an invalid or empty header name.`)
     }

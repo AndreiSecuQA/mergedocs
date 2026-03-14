@@ -69,13 +69,47 @@ prisma/schema.prisma                      ✅ IMPLEMENTED + generated
 
 ---
 
-## Session 2 — UI Pages (Pending)
+## Session 2 — Data Source UI ✅
 
-Steps 1A (Upload), 1B (Manual Table Editor), Step 2 (Document Source), home page wizard shell.
+**Status:** Complete — build passed, git committed
 
-## Session 3 — Template Editor & Preview (Pending)
+### Steps Completed
 
-TipTap editor page, variable sidebar, drag-and-drop, preview API route.
+| Step | Description | Status |
+|------|-------------|--------|
+| 10 | `src/lib/parsers/csvParser.ts` — Added `sanitizeVariableName()` export; renamed `parseCsv` → `parseCSV` | ✅ |
+| 11 | `src/lib/parsers/xlsxParser.ts` — Imports `sanitizeVariableName` from csvParser; renamed `parseXlsx` → `parseXLSX` | ✅ |
+| 12 | `src/components/wizard/StepIndicator.tsx` — 5-step horizontal progress bar with completed/current/future states | ✅ |
+| 13 | `src/components/shared/WizardLayout.tsx` — Sticky top bar with logo + StepIndicator; `max-w-5xl` content area | ✅ |
+| 14 | `src/components/wizard/FileUploader.tsx` — Drag-and-drop CSV/XLSX uploader; dispatches to `parseCSV` or `parseXLSX`; error toasts | ✅ |
+| 15 | `src/components/wizard/DataTablePreview.tsx` — Editable table preview; inline header validation; Confirm button | ✅ |
+| 16 | `src/components/wizard/ManualTableEditor.tsx` — Manual table entry; add/remove rows & cols; live variable/document count badge | ✅ |
+| 17 | `src/app/page.tsx` — Landing page with Upload CSV/Excel and Enter Data Manually cards; wrapped in `WizardLayout currentStep={1}` | ✅ |
+| 17b | `src/app/data/upload/page.tsx` — Upload flow: FileUploader → DataTablePreview → store → navigate `/template` | ✅ |
+| 17c | `src/app/data/manual/page.tsx` — Manual flow: ManualTableEditor → store → navigate `/template` | ✅ |
+
+---
+
+## Session 3 — Template Editor & Preview ✅
+
+**Status:** Complete — build passed, git committed
+
+### Steps Completed
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 18 | `src/app/api/parse-docx/route.ts` — Accepts `.docx` via FormData; mammoth.js → HTML; returns `{ html }` | ✅ |
+| 19 | `src/app/api/generate/preview/route.ts` — Accepts `{ templateHtml, firstRow }`; `replaceVariablesForPreview` + `replaceVariables`; returns `{ previewHtml, docxBase64 }` | ✅ |
+| 20 | `src/components/wizard/DocumentSourceChoice.tsx` — Step 2 choice: import `.docx`/`.txt` or create new; error toast for `.doc`/unsupported | ✅ |
+| 21 | `src/components/wizard/EditorToolbar.tsx` — TipTap formatting toolbar: Bold/Italic/Underline, H1/H2, alignment, lists, Undo/Redo | ✅ |
+| 22 | `src/components/shared/DraggableVariableChip.tsx` — Draggable chip via `@dnd-kit/core` `useDraggable`; green checkmark overlay when used | ✅ |
+| 23 | `src/components/wizard/VariableSidebar.tsx` — Variable list sidebar with draggable chips; `isUsed` detection via `data-variable` in editor HTML | ✅ |
+| 24 | `src/components/wizard/TemplateEditor.tsx` — TipTap editor (StarterKit + TextStyle + Underline + TextAlign + Placeholder + VariableNode); `useDroppable` drop target; debounced `onChange` | ✅ |
+| 24b | `src/app/template/page.tsx` — Step 2 page: guard redirect if no dataTable; DocumentSourceChoice → navigate to `/editor` | ✅ |
+| 24c | `src/app/editor/page.tsx` — Step 3 page: DndContext wrapping VariableSidebar + TemplateEditor; Generate Preview → POST `/api/generate/preview` → navigate `/preview` | ✅ |
+| 24d | `src/app/preview/page.tsx` — Step 4 page: renders `previewHtml`; free first-doc download (base64 → blob); navigate to `/download` | ✅ |
+
+---
 
 ## Session 4 — Download & Payment (Pending)
 
