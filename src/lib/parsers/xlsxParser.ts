@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx'
 import { ParsedDataTable } from '@/types'
 import { sanitizeVariableName } from './csvParser'
 
@@ -10,11 +9,15 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 /**
  * Parse an XLS or XLSX File object into a ParsedDataTable.
  * Runs entirely client-side using SheetJS.
+ * Uses dynamic import to avoid Next.js production-bundle issues with the xlsx package.
  */
 export async function parseXLSX(file: File): Promise<ParsedDataTable> {
   if (file.size > MAX_FILE_SIZE_BYTES) {
     throw new Error('File size exceeds the 10MB limit.')
   }
+
+  // Dynamic import avoids Next.js production tree-shaking/bundling issues with SheetJS
+  const XLSX = await import('xlsx')
 
   const buffer = await file.arrayBuffer()
   const workbook = XLSX.read(buffer, { type: 'array' })

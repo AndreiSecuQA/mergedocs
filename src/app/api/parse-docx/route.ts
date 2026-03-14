@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import mammoth from 'mammoth'
 import { writeFile, unlink } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { randomUUID } from 'crypto'
+
+// Force Node.js runtime and disable caching
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const SUPPORTED_EXTENSIONS = ['.docx']
 
@@ -28,17 +32,21 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Write to /tmp then pass as a file path — the most reliable approach on Vercel
-    // because mammoth uses its own ZIP reader that needs fs access to its own resources.
+    // Write to /tmp — most reliable on Vercel serverless for binary file parsing.
+    // mammoth's path option reads via Node fs.readFile which bypasses any bundling issues.
     const arrayBuffer = await (file as File).arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-    tmpPath = join(tmpdir(), `mergedocs-${Date.now()}-${Math.random().toString(36).slice(2)}.docx`)
+    tmpPath = join(tmpdir(), `mergedocs-${randomUUID()}.docx`)
     await writeFile(tmpPath, buffer)
 
+    // Dynamic import ensures mammoth is never tree-shaken or bundled by webpack
+    const mammoth = (await import('mammoth')).default
     const result = await mammoth.convertToHtml({ path: tmpPath })
 
     return NextResponse.json({ html: result.value })
   } catch (err) {
+    // Log to Vercel function logs so we can debug server-side
+    console.error('[parse-docx] error:', err)
     const message = err instanceof Error ? err.message : 'Failed to parse document.'
     return NextResponse.json(
       { error: message, code: 'PARSE_ERROR' },
@@ -46,8 +54,6 @@ export async function POST(req: NextRequest) {
     )
   } finally {
     // Always clean up the temp file
-    if (tmpPath) {
-      unlink(tmpPath).catch(() => {})
-    }
+    if (tmpPath) unlink(tmpPath).catch(() => {})
   }
 }
