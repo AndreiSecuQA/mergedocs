@@ -19,39 +19,64 @@ export function DocumentSourceChoice({ onImportSuccess, onCreateNew }: DocumentS
   const processFile = useCallback(
     async (file: File) => {
       const name = file.name.toLowerCase()
+      const ext = name.includes('.') ? name.split('.').pop()! : ''
 
-      if (name.endsWith('.doc') && !name.endsWith('.docx')) {
-        toast.error('Please save your file as .docx first.')
+      // .odt and .doc are binary formats — show a clear conversion message
+      if (ext === 'odt' || ext === 'doc') {
+        toast.error(
+          `".${ext}" cannot be imported directly. Open the file in Word (or LibreOffice) and save it as .docx, then upload again.`,
+          { duration: 8000 }
+        )
         return
       }
 
-      if (!name.endsWith('.docx') && !name.endsWith('.txt')) {
-        toast.error('Only .docx and .txt files are supported.')
+      const apiFormats: string[] = [] // all formats handled client-side now
+      const clientFormats = ['docx', 'txt', 'html', 'htm', 'md', 'markdown']
+
+      if (!apiFormats.includes(ext) && !clientFormats.includes(ext)) {
+        toast.error(`".${ext || 'Unknown format'}" is not supported. Use .docx, .txt, .html, or .md.`)
         return
       }
 
       setIsUploading(true)
       try {
-        if (name.endsWith('.txt')) {
+        if (ext === 'docx') {
+          // Parse DOCX fully client-side using mammoth's browser build.
+          // This avoids all Vercel serverless bundling issues with mammoth.
+          const arrayBuffer = await file.arrayBuffer()
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mammothMod = await import('mammoth/mammoth.browser') as any
+          const mammoth = mammothMod.default ?? mammothMod
+          const result = await mammoth.convertToHtml({ arrayBuffer })
+          onImportSuccess(result.value || '<p></p>')
+          toast.success('Document imported successfully')
+        } else if (ext === 'txt') {
           const text = await file.text()
           const html = text
             .split('\n')
             .filter((line) => line.trim())
             .map((line) => `<p>${line}</p>`)
             .join('')
+        } else if (ext === 'html' || ext === 'htm') {
+          const html = await file.text()
           onImportSuccess(html || '<p></p>')
           toast.success('Document imported successfully')
-        } else {
-          // .docx — send to API
-          const formData = new FormData()
-          formData.append('file', file)
-          const res = await fetch('/api/parse-docx', { method: 'POST', body: formData })
-          const data = await res.json()
-          if (!res.ok) {
-            toast.error(data.error ?? 'Failed to parse document.')
-            return
-          }
-          onImportSuccess(data.html ?? '<p></p>')
+        } else if (ext === 'md' || ext === 'markdown') {
+          const md = await file.text()
+          const html = md
+            .split('\n')
+            .map((line) => {
+              if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`
+              if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`
+              if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`
+              line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+              line = line.replace(/\*(.+?)\*/g, '<em>$1</em>')
+              if (line.trim() === '') return ''
+              return `<p>${line}</p>`
+            })
+            .filter(Boolean)
+            .join('')
+          onImportSuccess(html || '<p></p>')
           toast.success('Document imported successfully')
         }
       } catch {
@@ -102,7 +127,7 @@ export function DocumentSourceChoice({ onImportSuccess, onCreateNew }: DocumentS
           <input
             id="doc-upload"
             type="file"
-            accept=".docx,.txt"
+            accept=".docx,.txt,.html,.htm,.md,.markdown"
             className="sr-only"
             onChange={onInputChange}
           />
@@ -120,7 +145,7 @@ export function DocumentSourceChoice({ onImportSuccess, onCreateNew }: DocumentS
               <FileUp className="w-6 h-6 text-blue-600" />
             </div>
             <h3 className="text-base font-semibold text-zinc-900 mb-1">Import a Document</h3>
-            <p className="text-sm text-zinc-500 mb-4 flex-1">.docx or .txt files supported</p>
+            <p className="text-sm text-zinc-500 mb-4 flex-1">.docx, .txt, .html, .md</p>
             <p className="text-xs text-zinc-400">
               {isDragging ? 'Release to import' : 'Drop file here or click to browse'}
             </p>

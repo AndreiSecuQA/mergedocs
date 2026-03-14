@@ -34,16 +34,16 @@ export default function EditorPage() {
   const [mobileBannerDismissed, setMobileBannerDismissed] = useState(false)
   const editorHandleRef = useRef<{ insertVariable: (name: string) => void } | null>(null)
 
-  // Guard
+  const insertVariable = useCallback((name: string) => {
+    editorHandleRef.current?.insertVariable(name)
+  }, [])
+
+  // Guard — must come after all hooks
   useEffect(() => {
     if (!dataTable) router.replace('/')
   }, [dataTable, router])
 
   if (!dataTable) return null
-
-  const insertVariable = useCallback((name: string) => {
-    editorHandleRef.current?.insertVariable(name)
-  }, [])
 
   const onDragStart = (event: DragStartEvent) => {
     setActiveDragId(String(event.active.id))
@@ -116,7 +116,7 @@ export default function EditorPage() {
 
       <DndContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex gap-0 rounded-xl border border-zinc-200 overflow-hidden shadow-sm bg-white" style={{ height: 'calc(100vh - 200px)', minHeight: '500px' }}>
-          {/* Desktop sidebar */}
+          {/* Desktop sidebar — hidden on mobile, shown md+ */}
           <div className="hidden md:block w-[260px] shrink-0">
             <VariableSidebar
               headers={dataTable.headers}

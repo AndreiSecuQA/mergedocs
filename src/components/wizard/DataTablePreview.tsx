@@ -46,8 +46,10 @@ export function DataTablePreview({ table, onConfirm }: DataTablePreviewProps) {
     })
   }
 
-  // _colN placeholders were auto-generated for originally empty headers — treat as invalid so user must rename.
-  const isHeaderValid = (h: string) => h.length > 0 && VARIABLE_REGEX.test(h) && !/^_col\d+$/.test(h)
+  // _colN = auto-named placeholder for originally empty headers. Allowed as a variable name
+  // but shown with a warning style so user knows to rename it.
+  const isAutoNamed = (h: string) => /^_col\d+$/.test(h)
+  const isHeaderValid = (h: string) => h.length > 0 && VARIABLE_REGEX.test(h)
 
   const hasErrors = headers.some((h) => !isHeaderValid(h))
 
@@ -99,7 +101,8 @@ export function DataTablePreview({ table, onConfirm }: DataTablePreviewProps) {
                     className={cn(
                       'rounded-none border-0 border-r border-zinc-200 bg-transparent font-mono text-xs h-9',
                       'focus-visible:ring-0 focus-visible:ring-offset-0',
-                      !isHeaderValid(h) && 'border-red-400 bg-red-50 text-red-700 placeholder:text-red-300'
+                      !isHeaderValid(h) && 'border-red-400 bg-red-50 text-red-700 placeholder:text-red-300',
+                      isHeaderValid(h) && isAutoNamed(h) && 'border-amber-400 bg-amber-50 text-amber-700'
                     )}
                   />
                 </th>
