@@ -127,3 +127,28 @@
     @apply font-sans;
   }
 }
+
+/* ============================================================
+   MergeDocs custom styles
+   ============================================================ */
+
+.variable-chip {
+  @apply inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium
+         bg-blue-100 text-blue-800 border border-blue-200 cursor-default select-none mx-0.5;
+}
+
+.variable-matched {
+  @apply bg-green-50 text-green-800 rounded px-0.5;
+}
+
+.variable-unmatched {
+  @apply bg-red-100 text-red-700 rounded px-0.5 border border-red-300 cursor-help;
+}
+
+.ProseMirror {
+  @apply min-h-[400px] p-6 outline-none;
+}
+
+.ProseMirror p {
+  @apply my-2 leading-relaxed;
+}
