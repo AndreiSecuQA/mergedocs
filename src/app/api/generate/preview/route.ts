@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { replaceVariables, replaceVariablesForPreview } from '@/lib/merge/variableReplacer'
+import { generateDocxBase64 } from '@/lib/generators/docxGenerator'
 import { MergePreviewRequest } from '@/types'
 
 export async function POST(req: NextRequest) {
@@ -14,22 +15,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Generate preview HTML with highlighted matches/mismatches
+    // Generate preview HTML with highlighted matched/unmatched variables
     const previewHtml = replaceVariablesForPreview(templateHtml, firstRow)
 
-    // Generate plain replaced content (for .docx — placeholder for now)
-    const { output } = replaceVariables(templateHtml, firstRow)
+    // Generate real merged content and convert to .docx
+    const { output: mergedHtml } = replaceVariables(templateHtml, firstRow)
+    const docxBase64 = await generateDocxBase64(mergedHtml)
 
-    // Return preview HTML and a placeholder docxBase64 (real generation in Session 4)
-    return NextResponse.json({
-      previewHtml,
-      docxBase64: Buffer.from(output).toString('base64'),
-    })
+    return NextResponse.json({ previewHtml, docxBase64 })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Preview generation failed.'
-    return NextResponse.json(
-      { error: message, code: 'PREVIEW_ERROR' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: message, code: 'PREVIEW_ERROR' }, { status: 500 })
   }
 }
+

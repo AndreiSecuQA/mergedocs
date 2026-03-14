@@ -1,6 +1,17 @@
-// TODO: Bundle multiple Buffers into a .zip archive using jszip
+import JSZip from 'jszip'
+
+/**
+ * Package multiple document Buffers into a single .zip Buffer.
+ */
 export async function buildZip(
-  _files: { name: string; content: Buffer }[]
+  documents: { filename: string; buffer: Buffer }[]
 ): Promise<Buffer> {
-  throw new Error('zipBuilder not yet implemented')
+  const zip = new JSZip()
+
+  for (const doc of documents) {
+    zip.file(doc.filename, doc.buffer)
+  }
+
+  const result = await zip.generateAsync({ type: 'nodebuffer' })
+  return Buffer.from(result)
 }

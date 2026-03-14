@@ -111,9 +111,39 @@ prisma/schema.prisma                      ✅ IMPLEMENTED + generated
 
 ---
 
-## Session 4 — Download & Payment (Pending)
+## Session 4 — Preview, Generation & Payments ✅
 
-Stripe Checkout, webhook, document generation engine, zip packaging, R2 upload.
+**Status:** Complete — build passed (16/16 pages), git committed
+
+### Dependencies Added
+- `html-to-docx` — server-side HTML → .docx conversion
+- `src/types/html-to-docx.d.ts` — ambient TypeScript declaration
+- `src/lib/db/prisma.ts` — Prisma singleton with hot-reload guard
+
+### Steps Completed
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 25 | `src/lib/generators/docxGenerator.ts` — `generateDocx(html): Promise<Buffer>` and `generateDocxBase64(html): Promise<string>` via `html-to-docx` | ✅ |
+| 26 | `src/app/api/generate/preview/route.ts` — Updated to call `generateDocxBase64`; returns real `.docx` base64 (not plain text placeholder) | ✅ |
+| 27 | `src/components/wizard/PreviewRenderer.tsx` — A4-like white preview container; counts `variable-unmatched` spans and shows warning banner | ✅ |
+| 28 | `src/app/preview/page.tsx` — Two-column layout: variable substitution table (left) + PreviewRenderer (right); free single-doc download; `DownloadGate` with Stripe redirect | ✅ |
+| 29 | `src/app/api/payment/checkout/route.ts` — Validates rowCount (≤500); uploads input.json to R2; creates `MergeSession` in DB; creates Stripe Checkout session; returns `{ checkoutUrl }` | ✅ |
+| 30 | `src/app/api/payment/webhook/route.ts` — Reads raw body via `request.text()`; verifies Stripe signature; on `checkout.session.completed` updates DB and fire-and-forgets bulk generation | ✅ |
+| 31 | `src/lib/generators/zipBuilder.ts` — `buildZip(documents): Promise<Buffer>` using JSZip `nodebuffer` output | ✅ |
+| 32a | `src/app/api/generate/bulk/route.ts` — Verifies paid session; downloads input.json from R2; generates per-row `.docx`; builds zip; uploads to R2; stores pre-signed URL; updates DB | ✅ |
+| 32b | `src/app/api/session-status/route.ts` — `GET ?token=…` returns `{ status: 'pending' \| 'ready', downloadUrl? }` for download page polling | ✅ |
+| 33 | `src/app/download/page.tsx` — Polls `/api/session-status` every 2s (max 5 min); auto-triggers download on ready; handles cancelled/no-token state; timeout state with support contact | ✅ |
+
+### Pricing Logic Implemented
+| Row Count | Price | Stripe Price Env |
+|-----------|-------|-----------------|
+| 1 | Free | — |
+| 2–50 | $4.99 | `STRIPE_PRICE_BATCH_50` |
+| 51–500 | $9.99 | `STRIPE_PRICE_BATCH_500` |
+| > 500 | Rejected | `ROW_LIMIT_EXCEEDED` error |
+
+---
 
 ## Session 5 — Polish & Production Readiness (Pending)
 
