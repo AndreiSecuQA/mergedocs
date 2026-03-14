@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { WizardLayout } from '@/components/shared/WizardLayout'
 import { ManualTableEditor } from '@/components/wizard/ManualTableEditor'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { useWizardStore } from '@/lib/store/wizardStore'
 import { ParsedDataTable } from '@/types'
 
@@ -21,6 +22,7 @@ export default function ManualPage() {
 
   return (
     <WizardLayout currentStep={1}>
+      <ErrorBoundary>
       <div className="max-w-4xl mx-auto space-y-8">
         <div>
           <Link
@@ -35,8 +37,11 @@ export default function ManualPage() {
           </p>
         </div>
 
-        <ManualTableEditor onConfirm={handleConfirm} />
+        <div className="overflow-x-auto">
+          <ManualTableEditor onConfirm={handleConfirm} />
+        </div>
       </div>
+      </ErrorBoundary>
     </WizardLayout>
   )
 }

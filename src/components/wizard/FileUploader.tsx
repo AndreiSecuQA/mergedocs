@@ -62,6 +62,9 @@ export function FileUploader({ onParsed, isLoading = false }: FileUploaderProps)
           table = await parseXLSX(file)
         }
         setState('idle')
+        toast.success(
+          `Data loaded — ${table.rows.length} row${table.rows.length !== 1 ? 's' : ''}, ${table.headers.length} variable${table.headers.length !== 1 ? 's' : ''}`
+        )
         onParsed(table)
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to parse file.'

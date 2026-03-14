@@ -4,13 +4,15 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, PanelLeftOpen, X } from 'lucide-react'
 import { WizardLayout } from '@/components/shared/WizardLayout'
 import { VariableSidebar } from '@/components/wizard/VariableSidebar'
 import { TemplateEditor } from '@/components/wizard/TemplateEditor'
 import { DraggableVariableChip } from '@/components/shared/DraggableVariableChip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { useWizardStore } from '@/lib/store/wizardStore'
 
 export default function EditorPage() {
@@ -29,6 +31,7 @@ export default function EditorPage() {
   const [editorHtml, setEditorHtml] = useState(templateHtml)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [mobileBannerDismissed, setMobileBannerDismissed] = useState(false)
   const editorHandleRef = useRef<{ insertVariable: (name: string) => void } | null>(null)
 
   // Guard
@@ -54,9 +57,14 @@ export default function EditorPage() {
     }
   }
 
-  const handleGeneratePreview = async () => {
+  const handleGeneratePreview = async (): Promise<void> => {
     if (!dataTable?.rows?.[0]) {
       toast.error('No data rows found to preview.')
+      return
+    }
+    // Check at least one variable is placed in the template
+    if (!editorHtml.includes('data-variable=')) {
+      toast.warning('Add at least one variable to your template before previewing.')
       return
     }
     setIsGenerating(true)
@@ -78,9 +86,11 @@ export default function EditorPage() {
       setPreviewHtml(data.previewHtml)
       setPreviewDocxBase64(data.docxBase64)
       setCurrentStep(4)
+      toast.success('Preview ready')
       router.push('/preview')
-    } catch {
-      toast.error('Failed to generate preview. Please try again.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to generate preview.'
+      toast.error(`Could not generate preview — ${msg}`)
     } finally {
       setIsGenerating(false)
     }
@@ -88,10 +98,26 @@ export default function EditorPage() {
 
   return (
     <WizardLayout currentStep={3}>
+      <ErrorBoundary>
+        <div className="flex flex-col">
+        {/* Mobile warning banner */}
+        {!mobileBannerDismissed && (
+        <div className="flex md:hidden items-start justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 mb-4 text-sm text-amber-800">
+          <span>⚠ The template editor works best on a desktop. Some drag features may not be available on mobile.</span>
+          <button
+            onClick={() => setMobileBannerDismissed(true)}
+            className="shrink-0 mt-0.5"
+            aria-label="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <DndContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <div className="flex gap-0 rounded-xl border border-zinc-200 overflow-hidden shadow-sm bg-white" style={{ height: 'calc(100vh - 200px)', minHeight: '500px' }}>
-          {/* Sidebar */}
-          <div className="w-[260px] shrink-0">
+          {/* Desktop sidebar */}
+          <div className="hidden md:block w-[260px] shrink-0">
             <VariableSidebar
               headers={dataTable.headers}
               editorContent={editorHtml}
@@ -121,13 +147,29 @@ export default function EditorPage() {
         </DragOverlay>
 
         {/* Bottom action bar */}
-        <div className="mt-4 flex items-center justify-between gap-4">
-          <Input
-            value={templateName}
-            onChange={(e) => setTemplateName(e.target.value)}
-            className="max-w-xs border-transparent bg-transparent shadow-none text-sm font-medium text-zinc-700 hover:border-zinc-200 focus:border-zinc-300 focus-visible:ring-0"
-            placeholder="Template name…"
-          />
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            {/* Mobile: Variables sheet trigger */}
+            <Sheet>
+              <SheetTrigger className="md:hidden inline-flex items-center gap-1 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+                <PanelLeftOpen className="w-4 h-4" /> Variables
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px] p-0">
+                <VariableSidebar
+                  headers={dataTable.headers}
+                  editorContent={editorHtml}
+                  onInsert={insertVariable}
+                />
+              </SheetContent>
+            </Sheet>
+
+            <Input
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              className="max-w-xs border-transparent bg-transparent shadow-none text-sm font-medium text-zinc-700 hover:border-zinc-200 focus:border-zinc-300 focus-visible:ring-0"
+              placeholder="Template name…"
+            />
+          </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" onClick={() => router.push('/template')}>
               ← Back to Document
@@ -142,6 +184,8 @@ export default function EditorPage() {
           </div>
         </div>
       </DndContext>
+        </div>
+      </ErrorBoundary>
     </WizardLayout>
   )
 }

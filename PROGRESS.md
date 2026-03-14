@@ -145,6 +145,23 @@ prisma/schema.prisma                      ✅ IMPLEMENTED + generated
 
 ---
 
-## Session 5 — Polish & Production Readiness (Pending)
+## Session 5 — Polish & Production Readiness ✅
 
-Error handling, loading states, mobile responsiveness, accessibility, build optimization.
+**Status:** Complete — build passed (16/16 pages, exit code 0), git committed
+
+### New Files Created
+- `src/lib/rateLimit.ts` — In-memory rate limiter (`checkRateLimit(key, limit, windowMs)`)
+- `src/components/shared/ErrorBoundary.tsx` — React class component error boundary with Try Again / Go Home fallback
+- `src/app/global-error.tsx` — Next.js App Router global error page (inline styles only, no shadcn deps)
+
+### Steps Completed
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 34 | Mobile responsiveness: dismissable amber banner + Sheet slide-out sidebar on editor page; `overflow-x-auto` on upload/manual table containers | ✅ |
+| 35 | Error boundaries: `ErrorBoundary` class component; `global-error.tsx`; wrapped upload, manual, editor, preview, and download pages | ✅ |
+| 36 | Toast audit: success toast after CSV/XLSX parse ("N rows, M variables"); success toast after .txt/.docx import; "Preview ready" success toast; unmatched-variable warning toast in preview | ✅ |
+| 37 | Loading states: variable-placed guard before preview generation ("Add at least one variable …"); `try/finally` ensures `isLoading` resets on all paths | ✅ |
+| 38 | Security hardening: `src/lib/rateLimit.ts` applied to generate (30 req/min) and payment (10 req/min) routes; Content-Type + 5 MB body-size guards; `sanitizeVariableName` re-applied to all incoming keys in preview and bulk routes; `console.error` logging on all API error paths | ✅ |
+| 39 | TypeScript quality: removed invalid `asChild` from `SheetTrigger` (base-ui/react has no asChild); fixed duplicate `body` declaration in checkout route; moved unmatched-variables `useEffect` before conditional return in preview page (hooks rules); explicit `Promise<NextResponse>` / `Promise<void>` return types on all API handlers | ✅ |
+| 40 | Final build verification: `npm run build` → 16/16 pages, TypeScript clean, exit code 0 | ✅ |

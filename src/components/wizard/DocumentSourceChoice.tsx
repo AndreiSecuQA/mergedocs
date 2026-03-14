@@ -40,6 +40,7 @@ export function DocumentSourceChoice({ onImportSuccess, onCreateNew }: DocumentS
             .map((line) => `<p>${line}</p>`)
             .join('')
           onImportSuccess(html || '<p></p>')
+          toast.success('Document imported successfully')
         } else {
           // .docx — send to API
           const formData = new FormData()
@@ -51,6 +52,7 @@ export function DocumentSourceChoice({ onImportSuccess, onCreateNew }: DocumentS
             return
           }
           onImportSuccess(data.html ?? '<p></p>')
+          toast.success('Document imported successfully')
         }
       } catch {
         toast.error('Something went wrong while reading the file. Please try again.')

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { WizardLayout } from '@/components/shared/WizardLayout'
 import PreviewRenderer from '@/components/wizard/PreviewRenderer'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { Button } from '@/components/ui/button'
 import { useWizardStore } from '@/lib/store/wizardStore'
 import { toast } from 'sonner'
@@ -53,6 +54,18 @@ export default function PreviewPage() {
   useEffect(() => {
     if (!previewHtml) router.replace('/editor')
   }, [previewHtml, router])
+
+  // Warn about unmatched variables once on mount
+  useEffect(() => {
+    if (!previewHtml) return
+    const unmatched = (previewHtml.match(/class="variable-unmatched"/g) ?? []).length
+    if (unmatched > 0) {
+      toast.warning(
+        `${unmatched} variable${unmatched !== 1 ? 's' : ''} in your template ha${unmatched !== 1 ? 've' : 's'} no matching data`
+      )
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (!previewHtml || !dataTable) return null
 
@@ -111,7 +124,7 @@ export default function PreviewPage() {
 
   return (
     <WizardLayout currentStep={4}>
-      <div className="flex flex-col gap-6">
+      <ErrorBoundary>
         {/* Two-column layout */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left 40%: summary panel */}
@@ -170,7 +183,7 @@ export default function PreviewPage() {
 
           <DownloadGate rowCount={rowCount} onPay={handlePayAndDownload} isPaying={isPaying} />
         </div>
-      </div>
+      </ErrorBoundary>
     </WizardLayout>
   )
 }

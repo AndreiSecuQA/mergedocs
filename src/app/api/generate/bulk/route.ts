@@ -5,6 +5,7 @@ import { replaceVariables } from '@/lib/merge/variableReplacer'
 import { generateDocx } from '@/lib/generators/docxGenerator'
 import { buildZip } from '@/lib/generators/zipBuilder'
 import { uploadToR2 } from '@/lib/storage/r2Client'
+import { sanitizeVariableName } from '@/lib/parsers/csvParser'
 import { prisma } from '@/lib/db/prisma'
 import { ParsedDataTable } from '@/types'
 
@@ -34,7 +35,7 @@ async function downloadFromR2(key: string): Promise<Buffer> {
   return Buffer.concat(chunks)
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { sessionToken } = await req.json()
 
@@ -69,11 +70,11 @@ export async function POST(req: NextRequest) {
     const dataTable = JSON.parse(dataTableJson) as ParsedDataTable
     const { headers, rows } = dataTable
 
-    // 4. Generate a .docx for each row
+    // 4. For each row: sanitize keys, replace variables, generate docx
     const documents: { filename: string; buffer: Buffer }[] = []
     for (let i = 0; i < rows.length; i++) {
       const rowData = headers.reduce<Record<string, string>>((acc, header, colIdx) => {
-        acc[header] = rows[i][colIdx] ?? ''
+        acc[sanitizeVariableName(header)] = rows[i][colIdx] ?? ''
         return acc
       }, {})
       const { output: mergedHtml } = replaceVariables(templateHtml, rowData)

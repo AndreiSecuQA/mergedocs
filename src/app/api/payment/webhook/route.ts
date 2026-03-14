@@ -9,7 +9,7 @@ function getStripe() {
 }
 
 // Next.js App Router reads the raw request body via request.text()
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const stripe = getStripe()
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')

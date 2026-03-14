@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { WizardLayout } from '@/components/shared/WizardLayout'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { Button } from '@/components/ui/button'
 import { useWizardStore } from '@/lib/store/wizardStore'
 import { Loader2 } from 'lucide-react'

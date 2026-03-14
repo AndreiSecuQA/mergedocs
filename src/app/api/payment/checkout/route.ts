@@ -2,17 +2,36 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { uploadToR2 } from '@/lib/storage/r2Client'
 import { prisma } from '@/lib/db/prisma'
+import { checkRateLimit } from '@/lib/rateLimit'
 
-function getStripe() {
+const MAX_BODY_BYTES = 5 * 1024 * 1024
+
+function getStripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY
   if (!key) throw new Error('STRIPE_SECRET_KEY is not set')
   return new Stripe(key, { apiVersion: '2026-02-25.clover' })
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
+  const { allowed } = checkRateLimit(`checkout:${ip}`, 10, 60_000)
+  if (!allowed) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 })
+  }
+
+  const ct = req.headers.get('content-type') ?? ''
+  if (!ct.includes('application/json')) {
+    return NextResponse.json({ error: 'Content-Type must be application/json', code: 'INVALID_CONTENT_TYPE' }, { status: 415 })
+  }
+
+  const contentLength = Number(req.headers.get('content-length') ?? 0)
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: 'Request body too large', code: 'BODY_TOO_LARGE' }, { status: 413 })
+  }
+
   try {
     const stripe = getStripe()
-    const body = await req.json()
+    const body = await req.json() as { rowCount: number; sessionToken: string; templateHtml: string; dataTableJson: string }
     const { rowCount, sessionToken, templateHtml, dataTableJson } = body
 
     if (!rowCount || !sessionToken || !templateHtml || !dataTableJson) {
@@ -74,6 +93,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ checkoutUrl: stripeSession.url })
   } catch (err) {
+    console.error('[checkout] error:', err)
     const message = err instanceof Error ? err.message : 'Checkout failed.'
     return NextResponse.json({ error: message, code: 'CHECKOUT_ERROR' }, { status: 500 })
   }
