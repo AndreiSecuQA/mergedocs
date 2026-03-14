@@ -19,9 +19,9 @@ export function VariableSidebar({ headers, editorContent, onInsert }: VariableSi
       </div>
       <p className="text-xs text-zinc-400 mb-4">Click or drag into document</p>
 
-      {/* Chip list */}
+      {/* Chip list — skip empty-string headers (shouldn't happen after fixes, but guard anyway) */}
       <div className="flex flex-col gap-2">
-        {headers.map((name) => {
+        {headers.filter((name) => name.length > 0).map((name) => {
           const isUsed = editorContent.includes(`data-variable="${name}"`)
           return (
             <DraggableVariableChip
@@ -34,7 +34,7 @@ export function VariableSidebar({ headers, editorContent, onInsert }: VariableSi
         })}
       </div>
 
-      {headers.length === 0 && (
+      {headers.filter((n) => n.length > 0).length === 0 && (
         <p className="text-xs text-zinc-400 italic mt-2">No variables found.</p>
       )}
     </aside>

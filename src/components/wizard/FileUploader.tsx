@@ -62,9 +62,15 @@ export function FileUploader({ onParsed, isLoading = false }: FileUploaderProps)
           table = await parseXLSX(file)
         }
         setState('idle')
+        const invalidCount = table.headers.filter((h) => /^_col\d+$/.test(h)).length
         toast.success(
           `Data loaded — ${table.rows.length} row${table.rows.length !== 1 ? 's' : ''}, ${table.headers.length} variable${table.headers.length !== 1 ? 's' : ''}`
         )
+        if (invalidCount > 0) {
+          toast.warning(
+            `${invalidCount} column${invalidCount > 1 ? 's have' : ' has'} an empty or invalid name — please rename ${invalidCount > 1 ? 'them' : 'it'} before continuing.`
+          )
+        }
         onParsed(table)
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to parse file.'

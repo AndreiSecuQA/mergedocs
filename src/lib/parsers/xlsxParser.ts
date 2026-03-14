@@ -42,22 +42,37 @@ export async function parseXLSX(file: File): Promise<ParsedDataTable> {
     throw new Error('Header row must not be empty.')
   }
 
-  if (rawHeaders.length > MAX_COLUMNS) {
+  // Trim trailing empty cells — XLS files often have many blank trailing columns
+  // that would otherwise falsely trigger the MAX_COLUMNS limit.
+  let lastNonEmpty = -1
+  for (let i = rawHeaders.length - 1; i >= 0; i--) {
+    if (String(rawHeaders[i]).trim() !== '') {
+      lastNonEmpty = i
+      break
+    }
+  }
+  const trimmedHeaders = lastNonEmpty >= 0 ? rawHeaders.slice(0, lastNonEmpty + 1) : rawHeaders
+
+  if (trimmedHeaders.length === 0) {
+    throw new Error('Header row must not be empty.')
+  }
+
+  if (trimmedHeaders.length > MAX_COLUMNS) {
     throw new Error(`Maximum ${MAX_COLUMNS} columns allowed.`)
   }
 
-  const headers = rawHeaders.map((h, i) => {
+  // Use unique placeholder keys for empty/invalid headers so row data isn't
+  // overwritten when multiple columns share the same (empty) key.
+  const headers = trimmedHeaders.map((h, i) => {
     const sanitized = sanitizeVariableName(String(h))
-    if (!sanitized) {
-      throw new Error(`Column ${i + 1} has an invalid or empty header name.`)
-    }
-    if (!VARIABLE_NAME_REGEX.test(sanitized)) {
-      throw new Error(`Header "${h}" produces an invalid variable name.`)
+    if (!sanitized || !VARIABLE_NAME_REGEX.test(sanitized)) {
+      // Placeholder: unique + clearly needs renaming; DataTablePreview marks it red.
+      return `_col${i + 1}`
     }
     return sanitized
   })
 
-  const dataRows = rawData.slice(1).filter((row) =>
+  const dataRows = rawData.slice(1).map((row) => row.slice(0, trimmedHeaders.length)).filter((row) =>
     row.some((cell) => cell !== undefined && cell !== null && String(cell).trim() !== '')
   )
 

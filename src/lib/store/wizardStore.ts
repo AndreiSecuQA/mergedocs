@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { devtools, persist, createJSONStorage } from 'zustand/middleware'
 import { ParsedDataTable } from '@/types'
 
 export interface WizardState {
@@ -45,6 +45,7 @@ const initialState = {
 
 export const useWizardStore = create<WizardState>()(
   devtools(
+    persist(
     (set) => ({
       ...initialState,
       setCurrentStep: (step) => set({ currentStep: step }),
@@ -60,6 +61,17 @@ export const useWizardStore = create<WizardState>()(
       setDownloadUrl: (url) => set({ downloadUrl: url }),
       reset: () => set(initialState),
     }),
+    {
+      name: 'mergedocs-wizard',
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined' ? sessionStorage : {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        }
+      ),
+    }
+  ),
     { name: 'WizardStore' }
   )
 )

@@ -46,7 +46,8 @@ export function DataTablePreview({ table, onConfirm }: DataTablePreviewProps) {
     })
   }
 
-  const isHeaderValid = (h: string) => h.length > 0 && VARIABLE_REGEX.test(h)
+  // _colN placeholders were auto-generated for originally empty headers — treat as invalid so user must rename.
+  const isHeaderValid = (h: string) => h.length > 0 && VARIABLE_REGEX.test(h) && !/^_col\d+$/.test(h)
 
   const hasErrors = headers.some((h) => !isHeaderValid(h))
 

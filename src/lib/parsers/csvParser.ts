@@ -53,11 +53,9 @@ export function parseCSV(file: File): Promise<ParsedDataTable> {
 
           const headers = rawHeaders.map((h, i) => {
             const sanitized = sanitizeVariableName(h)
-            if (!sanitized) {
-              throw new Error(`Column ${i + 1} has an invalid or empty header name.`)
-            }
-            if (!VARIABLE_NAME_REGEX.test(sanitized)) {
-              throw new Error(`Header "${h}" produces an invalid variable name.`)
+            if (!sanitized || !VARIABLE_NAME_REGEX.test(sanitized)) {
+              // Unique placeholder: DataTablePreview marks _colN as red so user must rename.
+              return `_col${i + 1}`
             }
             return sanitized
           })
